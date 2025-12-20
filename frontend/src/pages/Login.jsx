@@ -4,13 +4,13 @@ import axios from 'axios';
 import { AiFillEye } from "react-icons/ai";
 import { AiFillEyeInvisible } from "react-icons/ai";
 import { useNavigate } from 'react-router-dom';
-import { userDataContext } from '../context/userContext';
+import { userDataContext } from '../context/UserContext';
 
 const Login = () => {
 
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
-    const { serverUrl } = useContext(userDataContext);
+    const { serverUrl, userData, setUserData } = useContext(userDataContext);
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -28,8 +28,11 @@ const Login = () => {
             }, { withCredentials: true });
             console.log(res);
             setLoading(false);
+            setUserData(res.data);
+            navigate('/');
         } catch (error) {
             console.log(error);
+            setUserData(null);
             setErr(error.response.data.message);
             setLoading(false);
         }
