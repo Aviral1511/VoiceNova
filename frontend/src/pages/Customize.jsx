@@ -11,6 +11,7 @@ import { RiImageAddFill } from "react-icons/ri";
 import { useState, useRef, useContext } from 'react'
 import { userDataContext } from '../context/UserContext'
 import { useNavigate } from 'react-router-dom'
+import { IoMdArrowRoundBack } from "react-icons/io";
 
 const Customize = () => {
     const inputImage = useRef();
@@ -24,7 +25,8 @@ const Customize = () => {
     }
 
     return (
-        <div className='w-full h-screen bg-linear-to-t from-[#000000fd] to-[#0202b4e7] flex justify-center items-center flex-col'>
+        <div className='w-full h-screen bg-linear-to-t from-[#000000fd] to-[#0202b4e7] flex justify-center items-center flex-col relative'>
+            <IoMdArrowRoundBack size={40} className='text-white absolute top-6 left-6 cursor-pointer h-7 w-7 hover:text-gray-300' onClick={() => navigate(`/`)} />
             <h1 className='text-white text-3xl font-semibold mb-10'>Select Your <span className='font-bold text-green-400'>Assistant Image</span></h1>
             <div className='w-full max-w-[70%] flex justify-center items-center flex-wrap gap-5 mb-5'>
                 <Card image={img1} />

@@ -26,7 +26,7 @@ const Login = () => {
                 email,
                 password
             }, { withCredentials: true });
-            console.log(res);
+            // console.log(res);
             setLoading(false);
             setUserData(res.data);
             navigate('/');

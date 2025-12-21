@@ -12,9 +12,9 @@ function App() {
   const { userData } = useContext(userDataContext);
 
   // 🚨 VERY IMPORTANT: wait for userData to load
-  if (userData === null) {
-    return <div>Loading...</div>; // or spinner
-  }
+  // if (userData === null) {
+  //   return <div>Loading...</div>; // or spinner
+  // }
 
   const isCustomized =
     userData?.assistantImage && userData?.assistantName;

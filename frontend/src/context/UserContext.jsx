@@ -19,7 +19,7 @@ const UserContext = ({ children }) => {
                     `${serverUrl}/api/user/current`,
                     { withCredentials: true }
                 );
-                setUserData(res.data);
+                setUserData(res.data.user);
             } catch (error) {
                 console.log("Error fetching user data:", error);
             }

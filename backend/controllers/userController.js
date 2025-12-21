@@ -28,7 +28,6 @@ export const updateAssistant = async (req, res) => {
         const user = await User.findByIdAndUpdate(req.userId, {
             assistantName , assistantImage
         },{ new: true }).select('-password');
-        console.log(user);
         
         res.status(200).json({ user });
     } catch (error) {
