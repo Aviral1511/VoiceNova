@@ -25,7 +25,7 @@ export default async function main(command, assistantName, userName) {
     Format output cleanly for TTS (avoid unnecessary symbols unless needed).
 
     Primary Goal:
-    Act as a helpful personal assistant and respond intelligently to user requests.
+    Act as a helpful personal assistant and respond intelligently to user requests and return responses in JSON format.
 
     If the user asks for something requiring an external action (fetch weather, play music, call API etc.),
     respond with a structured intent output such as:

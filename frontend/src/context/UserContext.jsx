@@ -28,7 +28,23 @@ const UserContext = ({ children }) => {
         fetchUser();
     }, []);
 
-    const value = { serverUrl, userData, setUserData, frontendImage, setFrontendImage, backendImage, setBackendImage, selectedImage, setSelectedImage };
+    const getGeminiResponse = async (command) => {
+        try {
+            const res = await axios.post(
+                `${serverUrl}/api/user/askAssistant`,
+                { command },
+                { withCredentials: true }
+            );
+            return res.data;
+        } catch (error) {
+            console.log("Error fetching Gemini response:", error);
+        }
+    };
+
+    const value = {
+        serverUrl, userData, setUserData, frontendImage, setFrontendImage, backendImage, setBackendImage,
+        selectedImage, setSelectedImage, getGeminiResponse
+    };
     return (
         <div>
             <userDataContext.Provider value={value}>
