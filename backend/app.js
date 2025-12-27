@@ -7,6 +7,7 @@ dotenv.config();
 
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import main from "./gemini.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +20,12 @@ app.use(cors({
 
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
+
+app.get("/", async (req, res) => {
+    let prompt = req.query.prompt || "Explain how AI works in a few words";
+    let data = await main(prompt);
+    res.json({ data });
+})
 
 app.listen(PORT, () => {
     connectDB();
