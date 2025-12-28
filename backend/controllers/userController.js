@@ -44,6 +44,8 @@ export const askAssistant = async (req, res) => {
         const username = user.name;
         const assistantName = user.assistantName || "VoiceNova";
         const result = await main(command, assistantName, username);
+        user.history.push(command);
+        await user.save();
 
         const jsonMatch = result.match(/{[\s\S]*}/);
         if (!jsonMatch) {
@@ -54,8 +56,6 @@ export const askAssistant = async (req, res) => {
         return res.status(200).json({ response: jsonResponse });
 
         // Optionally, you can save the interaction to user's history
-        user.history.push(`User: ${command}\n${assistantName}: ${response}`);
-        await user.save();
     } catch (error) {
         console.log(error);
         return res.status(500).json({ message: "Server error" });
