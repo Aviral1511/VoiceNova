@@ -14,12 +14,13 @@ const HomePage = () => {
     const [listening, setListening] = useState(false);
     const [userText, setUserText] = useState("");
     const [aiText, setAiText] = useState("");
+
     const recognitionRef = useRef(null);
     const isSpeakingRef = useRef(false);
-    const isRecognizingRef = useRef(false);
     const synth = window.speechSynthesis;
 
-    // ---------- LOGOUT ----------
+    const wakeWord = (userData?.assistantName || "voicenova").toLowerCase();
+
     const handleLogout = async () => {
         try {
             await axios.post(`${serverUrl}/api/auth/logout`, { withCredentials: true });
@@ -30,110 +31,114 @@ const HomePage = () => {
         }
     };
 
-    // ---------- SPEAK ----------
+    // *************************************
+    // SPEAK — Handles TTS + Resume listening
+    // *************************************
     const speak = (text) => {
-        isSpeakingRef.current = true;
         const u = new SpeechSynthesisUtterance(text);
-
         u.lang = userData?.assistantLang || "en-US";
-        // u.pitch = 1;
-        // u.rate = 1;
+
+        isSpeakingRef.current = true;
+        setAiText(text);
 
         u.onend = () => {
             isSpeakingRef.current = false;
             setAiText("");
-            // recognitionRef.current?.start();
+            recognitionRef.current?.start(); // resume listening
         };
-
         synth.speak(u);
     };
 
-    // ---------- COMMAND HANDLER ----------
+    // *************************************
+    // Direct commands (Runs BEFORE Gemini)
+    // *************************************
     const handleCommands = (text) => {
         const cmd = text.toLowerCase();
 
-        // 🔎 Google Search
-        if (cmd.includes("google")) {
-            const q = cmd.replace("google", "").trim();
-            speak("Searching on Google");
-            window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, "_blank");
+        // Google
+        if (cmd.startsWith("google") || cmd.startsWith("search")) {
+            const q = cmd.replace("google", "").replace("search", "").trim();
+            speak(`Searching for ${q}`);
+            window.open(`https://www.google.com/search?q=${q}`, "_blank");
             return true;
         }
 
-        // ▶️ YouTube Search
-        if (cmd.includes("youtube") || cmd.includes("play")) {
+        // YouTube
+        if (cmd.includes("youtube") || cmd.startsWith("play")) {
             const q = cmd.replace("youtube", "").replace("play", "").trim();
             speak(`Playing ${q} on YouTube`);
-            window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`, "_blank");
+            window.open(`https://www.youtube.com/results?search_query=${q}`, "_blank");
             return true;
         }
 
-        // 🌐 Open Apps/Webs (add more later)
-        const openMap = {
-            "facebook": "https://facebook.com",
-            "instagram": "https://instagram.com",
-            "gmail": "https://mail.google.com",
-            "whatsapp": "https://web.whatsapp.com",
-            "github": "https://github.com",
-            "spotify": "https://open.spotify.com",
+        // Website opener
+        const sites = {
+            facebook: "https://facebook.com",
+            instagram: "https://instagram.com",
+            gmail: "https://mail.google.com",
+            whatsapp: "https://web.whatsapp.com",
+            github: "https://github.com",
+            spotify: "https://open.spotify.com"
         };
 
-        for (let app in openMap) {
-            if (cmd.includes(app)) {
-                speak(`Opening ${app}`);
-                window.open(openMap[app], "_blank");
+        for (let key in sites) {
+            if (cmd.includes(key)) {
+                speak(`Opening ${key}`);
+                window.open(sites[key], "_blank");
                 return true;
             }
         }
 
-        return false;
+        return false; // no match → go to Gemini
     };
 
-    // ---------- SPEECH RECOGNITION ----------
+
+    // *************************************
+    // Speech Recognition
+    // *************************************
     useEffect(() => {
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SR) return console.log("Speech Recognition Not Supported!");
 
         const rec = new SR();
-        rec.continuous = true;
+        rec.continuous = false; // important fix against double greeting
         rec.lang = "en-US";
         recognitionRef.current = rec;
 
-        const safeStart = () => {
-            if (!isRecognizingRef.current && !isSpeakingRef.current) {
-                try { rec.start(); } catch { }
-            }
-        };
-
-        rec.onstart = () => { setListening(true); isRecognizingRef.current = true; console.log("🎤 Listening..."); };
-        rec.onend = () => { setListening(false); isRecognizingRef.current = false; setTimeout(safeStart, 800); };
-        rec.onerror = () => { setListening(false); isRecognizingRef.current = false; setTimeout(safeStart, 1000); };
+        rec.onstart = () => setListening(true);
+        rec.onend = () => { setListening(false); if (!isSpeakingRef.current) rec.start(); };
+        rec.onerror = () => { if (!isSpeakingRef.current) rec.start(); };
 
         rec.onresult = async (e) => {
-            const text = e.results[e.results.length - 1][0].transcript.trim();
+            const text = e.results[0][0].transcript.trim();
             setUserText(text);
-            console.log("User:", text);
 
-            if (text.toLowerCase().includes((userData?.assistantName || "voicenova").toLowerCase())) {
-                rec.stop();
-                const reply = await getGeminiResponse(text);
+            console.log("Heard:", text);
 
-                setAiText(reply);
-                speak(reply);
+            // ------------ Wake Phrase ------------
+            if (!text.toLowerCase().startsWith(wakeWord)) return; // prevents random triggers
 
-                if (handleCommands(text)) return;
-            }
-        };
+            rec.stop(); // stop listening while responding
 
-        // Greet Once
+            // 1️⃣ Try commands first
+            if (handleCommands(text)) return;
+
+            // 2️⃣ AI Response
+            const reply = await getGeminiResponse(text);
+            speak(reply);
+        }
+
+        // ---------------- GREETING FIX ----------------
         setTimeout(() => {
-            speak(`Hello ${userData?.name || ''}, I am ${userData?.assistantName || 'VoiceNova'}. How can I help you today?`);
-        }, 300);
+            speak(`Hello ${userData?.name || ''}, I am ${userData?.assistantName || 'VoiceNova'}. How can I assist you today?`);
+            console.log("Greeting sent");
+        }, 800);
 
-        safeStart();
+        rec.start();
+
         return () => rec.stop();
-
     }, []);
+
 
     return (
         <div className='w-full h-screen bg-linear-to-t from-[#000000fd] to-[#010188ea] flex flex-col justify-center items-center'>
@@ -157,8 +162,9 @@ const HomePage = () => {
             {aiText ? <img src={ai} className='w-40' /> : <img src={user} className='w-40' />}
 
             <p className='text-white text-lg text-center px-5 mt-3'>
-                {userText || aiText || (listening && "Listening...")}
+                {userText || aiText || (listening ? "Listening..." : "")}
             </p>
+
         </div>
     );
 };
